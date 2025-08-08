@@ -102,7 +102,13 @@
   <div id="overlay">
     <div id="panel">
       <h1>תפוס את המנעול</h1>
-      <p>כל תפיסה מעלה ניקוד. מהירות תעלה בהדרגה. 3 פספוסים מסיימים את המשחק.</p>
+      <p>בחר קצב התחלה ומשחק יישאר באותו קצב. 3 פספוסים מסיימים את המשחק.</p>
+      <div class="row">
+        <button class="btn" onclick="setSpeed(2000)">לאט</button>
+        <button class="btn secondary" onclick="setSpeed(1600)">בינוני</button>
+        <button class="btn" style="background:#ef4444" onclick="setSpeed(1200)">מהיר</button>
+      </div>
+      <br>
       <div class="row">
         <button id="freeBtn" class="btn">מצב חופשי</button>
         <button id="challengeBtn" class="btn secondary">אתגר 30 שניות</button>
@@ -114,9 +120,9 @@
 
 <script>
 let mode='free';
-let score=0, misses=0, speed=1900, started=false, mover, timerId, timeLeft=30;
+let score=0, misses=0, speed=2000, started=false, mover, timerId, timeLeft=30;
 let lastMoveTime = Date.now();
-let clickCountSinceSpeedUp = 0;
+let chosenSpeed = 2000;
 
 const lock=document.getElementById('lock');
 const scoreBox=document.getElementById('score');
@@ -130,6 +136,8 @@ const againBtn=document.getElementById('againBtn');
 const HS_KEY='lock_game_highscore';
 let high=Number(localStorage.getItem(HS_KEY)||0);
 updateScore();
+
+function setSpeed(s){ chosenSpeed = s; }
 
 function rand(min,max){return Math.random()*(max-min)+min;}
 function randomPosition(){
@@ -153,7 +161,7 @@ function tick(){
 }
 
 function startGame(){
-  started=true; score=0; misses=0; speed=1900; clickCountSinceSpeedUp = 0;
+  started=true; score=0; misses=0; speed=chosenSpeed;
   updateScore();
   overlay.style.display='none';
   gameOver.style.display='none';
@@ -199,14 +207,7 @@ lock.addEventListener('click', ()=>{
   lastMoveTime = Date.now();
   if(!started) return;
   score++; updateScore();
-  clickCountSinceSpeedUp++;
   lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
-  if(clickCountSinceSpeedUp >= 3 && speed > 1400){ // שינוי כל 3 תפיסות
-    speed -= 120;
-    clickCountSinceSpeedUp = 0;
-    clearInterval(mover);
-    mover=setInterval(tick, speed);
-  }
   randomPosition();
 });
 
