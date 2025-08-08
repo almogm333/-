@@ -7,37 +7,36 @@
 <style>
   :root{--ui:#1a73e8}
   body{margin:0;overflow:hidden;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;text-align:center}
-  #score{position:fixed;top:10px;left:10px;font-size:20px;background:rgba(255,255,255,.85);padding:6px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);backdrop-filter:saturate(120%) blur(4px);display:none}
-  /* כפתור התחלה ורקע פתיחה */
+  #score{position:fixed;top:10px;left:10px;font-size:18px;background:rgba(255,255,255,.85);padding:6px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);backdrop-filter:saturate(120%) blur(4px);display:none}
+  #timer{position:fixed;top:10px;right:10px;font-size:18px;background:rgba(255,255,255,.85);padding:6px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);display:none}
   #overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f6f9ff,#e7eefb)}
-  #panel{background:#fff;padding:24px 28px;border-radius:14px;box-shadow:0 10px 35px rgba(16,24,40,.15);max-width:460px}
+  #panel{background:#fff;padding:24px 28px;border-radius:14px;box-shadow:0 10px 35px rgba(16,24,40,.15);max-width:520px}
   #panel h1{margin:0 0 10px;font-size:24px}
   #panel p{margin:0 0 16px;color:#475467}
   .btn{font-size:18px;padding:10px 18px;border:0;border-radius:10px;cursor:pointer;background:var(--ui);color:#fff;box-shadow:0 6px 20px rgba(26,115,232,.35)}
-  /* המנעול */
+  .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .btn.secondary{background:#10b981;box-shadow:0 6px 20px rgba(16,185,129,.35)}
   #lock{position:absolute;width:84px;height:84px;display:none;filter:drop-shadow(0 10px 18px rgba(0,0,0,.18))}
   #lock svg{width:100%;height:100%;will-change:transform,filter}
   .pop{animation:pop .18s ease}
   @keyframes pop{0%{transform:scale(1)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
-  /* מסך סוף משחק */
   #gameOver{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:22px;border-radius:12px;font-size:22px;box-shadow:0 10px 28px rgba(0,0,0,.2)}
   #againBtn{margin-top:10px}
 </style>
 </head>
 <body>
-  <div id="score">נקודות: 0</div>
+  <div id="score">נקודות: 0 · שיא: 0</div>
+  <div id="timer">00:30</div>
 
   <!-- מנעול SVG ריאליסטי -->
   <div id="lock" aria-label="lock">
-    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
-        <!-- מתכת קשת -->
         <linearGradient id="steel" x1="0" x2="1">
           <stop offset="0" stop-color="#cfd6de"/>
           <stop offset="0.5" stop-color="#f5f7fa"/>
           <stop offset="1" stop-color="#aab3bd"/>
         </linearGradient>
-        <!-- גוף מוזהב -->
         <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#ffd574"/>
           <stop offset="1" stop-color="#c99a2c"/>
@@ -47,14 +46,9 @@
           <stop offset="1" stop-color="rgba(255,255,255,0)"/>
         </radialGradient>
       </defs>
-      <!-- קשת -->
-      <path d="M20 26 v-8 a12 12 0 0 1 24 0 v8"
-            fill="none" stroke="url(#steel)" stroke-width="6" stroke-linecap="round"/>
-      <!-- גוף -->
+      <path d="M20 26 v-8 a12 12 0 0 1 24 0 v8" fill="none" stroke="url(#steel)" stroke-width="6" stroke-linecap="round"/>
       <rect x="14" y="26" rx="6" ry="6" width="36" height="30" fill="url(#brass)" stroke="#916f1c" stroke-width="1.2"/>
-      <!-- נצנוץ -->
       <ellipse cx="26" cy="32" rx="12" ry="8" fill="url(#shine)"/>
-      <!-- חור מפתח -->
       <circle cx="32" cy="42" r="5" fill="#3a3a3a"/>
       <rect x="30.8" y="42" width="2.4" height="8" rx="1.2" fill="#3a3a3a"/>
     </svg>
@@ -64,8 +58,11 @@
   <div id="overlay">
     <div id="panel">
       <h1>תפוס את המנעול</h1>
-      <p>לחץ “התחל”. תתפוס את המנעול לפני שהוא קופץ. 3 פספוסים – וזהו.</p>
-      <button id="startBtn" class="btn">התחל</button>
+      <p>בחר מצב משחק. תפיסה מעלה ניקוד ומזרזת את הקפיצות. 3 פספוסים מסיימים משחק.</p>
+      <div class="row">
+        <button id="freeBtn" class="btn">מצב חופשי</button>
+        <button id="challengeBtn" class="btn secondary">אתגר 30 שניות</button>
+      </div>
     </div>
   </div>
 
@@ -73,22 +70,43 @@
   <div id="gameOver">המשחק נגמר!<br><button id="againBtn" class="btn">שחק שוב</button></div>
 
 <script>
-  let score=0, misses=0, speed=1900, started=false, mover;
+  // מצב משחק
+  let mode = 'free'; // 'free' | 'challenge'
+  let score=0, misses=0, speed=1900, started=false, mover, timerId, timeLeft=30;
   const lock=document.getElementById('lock');
   const scoreBox=document.getElementById('score');
+  const timerBox=document.getElementById('timer');
   const overlay=document.getElementById('overlay');
   const gameOver=document.getElementById('gameOver');
-  const startBtn=document.getElementById('startBtn');
+  const freeBtn=document.getElementById('freeBtn');
+  const challengeBtn=document.getElementById('challengeBtn');
   const againBtn=document.getElementById('againBtn');
+
+  // שיא מקומי
+  const HS_KEY='lock_game_highscore';
+  let high=Number(localStorage.getItem(HS_KEY)||0);
+  updateScore();
+
+  // אודיו בלי קבצים (WebAudio)
+  let ctx=null;
+  function ensureAudio(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+  function beep(freq=880, dur=0.08, type='sine', vol=0.2){
+    if(!ctx) return;
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type; o.frequency.value=freq;
+    g.gain.value=vol;
+    o.connect(g); g.connect(ctx.destination);
+    o.start();
+    setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); }, dur*1000);
+  }
 
   function rand(min,max){return Math.random()*(max-min)+min;}
   function randomPosition(){
     const w=lock.offsetWidth, h=lock.offsetHeight;
-    const x=rand(6, window.innerWidth - w - 6);
-    const y=rand(6, window.innerHeight - h - 6);
+    const x=rand(6, Math.max(7, window.innerWidth - w - 6));
+    const y=rand(6, Math.max(7, window.innerHeight - h - 6));
     lock.style.left = x+'px';
     lock.style.top  = y+'px';
-    // שינוי גוון קטן כדי “להחיות” את המתכת
     lock.style.filter = `drop-shadow(0 10px 18px rgba(0,0,0,.18)) hue-rotate(${Math.floor(rand(0,40))}deg)`;
   }
   function tick(){
@@ -99,24 +117,56 @@
   }
   function startGame(){
     started=true; score=0; misses=0; speed=1900;
-    scoreBox.textContent='נקודות: 0';
-    scoreBox.style.display='block';
+    updateScore();
     overlay.style.display='none';
     gameOver.style.display='none';
     lock.style.display='block';
+    scoreBox.style.display='block';
     randomPosition();
     clearInterval(mover);
     mover=setInterval(tick, speed);
+
+    if(mode==='challenge'){
+      timeLeft=30;
+      timerBox.style.display='block';
+      updateTimer();
+      clearInterval(timerId);
+      timerId=setInterval(()=>{
+        timeLeft--;
+        updateTimer();
+        if(timeLeft<=0){ endGame(); }
+      },1000);
+    }else{
+      timerBox.style.display='none';
+      clearInterval(timerId);
+    }
+  }
+  function updateScore(){
+    scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`;
+  }
+  function updateTimer(){
+    const s = String(timeLeft).padStart(2,'0');
+    timerBox.textContent=`00:${s}`;
   }
   function endGame(){
     started=false;
     clearInterval(mover);
-    gameOver.style.display='block';
+    clearInterval(timerId);
+    lock.style.display='none';
+    document.getElementById('gameOver').style.display='block';
+    if(score>high){
+      high=score;
+      localStorage.setItem(HS_KEY, String(high));
+    }
+    updateScore();
+    // צליל סיום
+    ensureAudio(); beep(200,0.15,'triangle',0.25); setTimeout(()=>beep(160,0.18,'triangle',0.22),170);
   }
+
   lock.addEventListener('click', ()=>{
     if(!started) return;
-    score++;
-    scoreBox.textContent='נקודות: '+score;
+    ensureAudio(); beep(880,0.06,'sine',0.15);
+    score++; updateScore();
     lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
     if(speed>650){
       speed-=120;
@@ -125,8 +175,22 @@
     }
     randomPosition();
   });
-  startBtn.addEventListener('click', startGame);
-  againBtn.addEventListener('click', startGame);
+
+  freeBtn.addEventListener('click', ()=>{ mode='free'; startWithGesture(); });
+  challengeBtn.addEventListener('click', ()=>{ mode='challenge'; startWithGesture(); });
+  againBtn.addEventListener('click', ()=>{ overlay.style.display='flex'; document.getElementById('gameOver').style.display='none'; });
+
+  // כדי ש-WebAudio יעבוד באייפון – להתחיל אחרי מחווה של המשתמש
+  function startWithGesture(){
+    ensureAudio();
+    if(ctx && ctx.state==='suspended'){ ctx.resume(); }
+    startGame();
+  }
+
+  // הגנה קטנה: אם הטאב הוסתר – עוצרים תנועה
+  document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ clearInterval(mover); } else if(started){ clearInterval(mover); mover=setInterval(tick, speed); }});
+  // שינוי גודל מסך
+  window.addEventListener('resize', ()=>{ if(started) randomPosition(); });
 </script>
 </body>
 </html>
