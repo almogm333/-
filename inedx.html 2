@@ -72,7 +72,6 @@
   }
   #againBtn{ margin-top:10px }
 
-  /* התאמת גודל מנעול למסכים גדולים יותר */
   @media (min-width: 820px) { #lock{ width:96px; height:96px } }
   @media (min-width: 1024px){ #lock{ width:110px; height:110px } }
 </style>
@@ -81,7 +80,6 @@
   <div id="score">נקודות: 0 · שיא: 0</div>
   <div id="timer">00:30</div>
 
-  <!-- מנעול SVG ריאליסטי -->
   <div id="lock" aria-label="lock">
     <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
@@ -107,7 +105,6 @@
     </svg>
   </div>
 
-  <!-- מסך פתיחה -->
   <div id="overlay">
     <div id="panel">
       <h1>תפוס את המנעול</h1>
@@ -119,15 +116,13 @@
     </div>
   </div>
 
-  <!-- סוף משחק -->
   <div id="gameOver">המשחק נגמר!<br><button id="againBtn" class="btn">שחק שוב</button></div>
 
 <script>
-  // מצב משחק ושעון
   let mode='free';
   let score=0, misses=0, speed=1900, started=false, mover, timerId, timeLeft=30;
+  let lastMoveTime = Date.now();
 
-  // אלמנטים
   const lock=document.getElementById('lock');
   const scoreBox=document.getElementById('score');
   const timerBox=document.getElementById('timer');
@@ -137,12 +132,10 @@
   const challengeBtn=document.getElementById('challengeBtn');
   const againBtn=document.getElementById('againBtn');
 
-  // שיא מקומי
   const HS_KEY='lock_game_highscore';
   let high=Number(localStorage.getItem(HS_KEY)||0);
   updateScore();
 
-  // אודיו קליל בלי קבצים (WebAudio)
   let ctx=null;
   function ensureAudio(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
   function beep(freq=880, dur=0.08, type='sine', vol=0.2){
@@ -155,7 +148,6 @@
     setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); }, dur*1000);
   }
 
-  // עזר
   function rand(min,max){return Math.random()*(max-min)+min;}
   function randomPosition(){
     const w=lock.offsetWidth, h=lock.offsetHeight;
@@ -163,16 +155,20 @@
     const y=rand(6, Math.max(7, window.innerHeight - h - 6));
     lock.style.left = x+'px';
     lock.style.top  = y+'px';
-    lock.style.filter = `drop-shadow(0 10px 18px rgba(0,0,0,.18)) hue-rotate(${Math.floor(rand(0,40))}deg)`;
+    lastMoveTime = Date.now();
   }
+
   function tick(){
     randomPosition();
     if(!started) return;
-    misses++;
-    if(misses>=3) endGame();
+    setTimeout(() => {
+      if (Date.now() - lastMoveTime >= 500 && started) {
+        misses++;
+        if (misses >= 3) endGame();
+      }
+    }, 500);
   }
 
-  // התחלה/סיום
   function startGame(){
     started=true; score=0; misses=0; speed=1900;
     updateScore();
@@ -199,6 +195,7 @@
       clearInterval(timerId);
     }
   }
+
   function endGame(){
     started=false;
     clearInterval(mover);
@@ -210,21 +207,19 @@
       localStorage.setItem(HS_KEY, String(high));
     }
     updateScore();
-    // צליל סיום
     ensureAudio(); beep(200,0.15,'triangle',0.25); setTimeout(()=>beep(160,0.18,'triangle',0.22),170);
   }
 
-  // ניקוד/טיימר
   function updateScore(){ scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`; }
   function updateTimer(){ timerBox.textContent=`00:${String(timeLeft).padStart(2,'0')}`; }
 
-  // אירועים
   lock.addEventListener('click', ()=>{
+    lastMoveTime = Date.now();
     if(!started) return;
     ensureAudio(); beep(880,0.06,'sine',0.15);
     score++; updateScore();
     lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
-    if(speed>650){
+    if(speed>1000){
       speed-=120;
       clearInterval(mover);
       mover=setInterval(tick, speed);
@@ -238,7 +233,6 @@
   });
   window.addEventListener('resize', ()=>{ if(started) randomPosition(); });
 
-  // כפתורים
   function startWithGesture(){ ensureAudio(); if(ctx && ctx.state==='suspended'){ ctx.resume(); } startGame(); }
   freeBtn.addEventListener('click', ()=>{ mode='free'; startWithGesture(); });
   challengeBtn.addEventListener('click', ()=>{ mode='challenge'; startWithGesture(); });
@@ -246,7 +240,6 @@
 </script>
 
 <script>
-  // רישום Service Worker ל-PWA
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
   }
