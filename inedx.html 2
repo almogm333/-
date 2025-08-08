@@ -6,12 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="apple-touch-icon" href="lock-icon-512.png">
-
 <title>תפוס את המנעול</title>
-
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a73e8">
-
 <style>
   :root{
     --ui:#1a73e8;
@@ -71,17 +68,14 @@
     background:#fff; padding:22px; border-radius:12px; font-size:22px; box-shadow:0 10px 28px rgba(0,0,0,.2); z-index:25
   }
   #againBtn{ margin-top:10px }
-
-  @media (min-width: 820px) { #lock{ width:96px; height:96px } }
-  @media (min-width: 1024px){ #lock{ width:110px; height:110px } }
 </style>
 </head>
 <body>
   <div id="score">נקודות: 0 · שיא: 0</div>
   <div id="timer">00:30</div>
 
-  <div id="lock" aria-label="lock">
-    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <div id="lock">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="steel" x1="0" x2="1">
           <stop offset="0" stop-color="#cfd6de"/>
@@ -108,7 +102,7 @@
   <div id="overlay">
     <div id="panel">
       <h1>תפוס את המנעול</h1>
-      <p>בחר מצב משחק. כל תפיסה מעלה ניקוד ומזרזת את הקפיצות. 3 פספוסים מסיימים משחק.</p>
+      <p>כל תפיסה מעלה ניקוד. מהירות תעלה בהדרגה. 3 פספוסים מסיימים את המשחק.</p>
       <div class="row">
         <button id="freeBtn" class="btn">מצב חופשי</button>
         <button id="challengeBtn" class="btn secondary">אתגר 30 שניות</button>
@@ -119,130 +113,106 @@
   <div id="gameOver">המשחק נגמר!<br><button id="againBtn" class="btn">שחק שוב</button></div>
 
 <script>
-  let mode='free';
-  let score=0, misses=0, speed=1900, started=false, mover, timerId, timeLeft=30;
-  let lastMoveTime = Date.now();
+let mode='free';
+let score=0, misses=0, speed=1900, started=false, mover, timerId, timeLeft=30;
+let lastMoveTime = Date.now();
+let clickCountSinceSpeedUp = 0;
 
-  const lock=document.getElementById('lock');
-  const scoreBox=document.getElementById('score');
-  const timerBox=document.getElementById('timer');
-  const overlay=document.getElementById('overlay');
-  const gameOver=document.getElementById('gameOver');
-  const freeBtn=document.getElementById('freeBtn');
-  const challengeBtn=document.getElementById('challengeBtn');
-  const againBtn=document.getElementById('againBtn');
+const lock=document.getElementById('lock');
+const scoreBox=document.getElementById('score');
+const timerBox=document.getElementById('timer');
+const overlay=document.getElementById('overlay');
+const gameOver=document.getElementById('gameOver');
+const freeBtn=document.getElementById('freeBtn');
+const challengeBtn=document.getElementById('challengeBtn');
+const againBtn=document.getElementById('againBtn');
 
-  const HS_KEY='lock_game_highscore';
-  let high=Number(localStorage.getItem(HS_KEY)||0);
+const HS_KEY='lock_game_highscore';
+let high=Number(localStorage.getItem(HS_KEY)||0);
+updateScore();
+
+function rand(min,max){return Math.random()*(max-min)+min;}
+function randomPosition(){
+  const w=lock.offsetWidth, h=lock.offsetHeight;
+  const x=rand(6, Math.max(7, window.innerWidth - w - 6));
+  const y=rand(6, Math.max(7, window.innerHeight - h - 6));
+  lock.style.left = x+'px';
+  lock.style.top  = y+'px';
+  lastMoveTime = Date.now();
+}
+
+function tick(){
+  randomPosition();
+  if(!started) return;
+  setTimeout(() => {
+    if (Date.now() - lastMoveTime >= 800 && started) { // 0.8 שניות
+      misses++;
+      if (misses >= 3) endGame();
+    }
+  }, 800);
+}
+
+function startGame(){
+  started=true; score=0; misses=0; speed=1900; clickCountSinceSpeedUp = 0;
   updateScore();
+  overlay.style.display='none';
+  gameOver.style.display='none';
+  lock.style.display='block';
+  scoreBox.style.display='block';
+  randomPosition();
+  clearInterval(mover);
+  mover=setInterval(tick, speed);
 
-  let ctx=null;
-  function ensureAudio(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
-  function beep(freq=880, dur=0.08, type='sine', vol=0.2){
-    if(!ctx) return;
-    const o=ctx.createOscillator(), g=ctx.createGain();
-    o.type=type; o.frequency.value=freq;
-    g.gain.value=vol;
-    o.connect(g); g.connect(ctx.destination);
-    o.start();
-    setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); }, dur*1000);
+  if(mode==='challenge'){
+    timeLeft=30;
+    timerBox.style.display='block';
+    updateTimer();
+    clearInterval(timerId);
+    timerId=setInterval(()=>{
+      timeLeft--;
+      updateTimer();
+      if(timeLeft<=0){ endGame(); }
+    },1000);
+  }else{
+    timerBox.style.display='none';
+    clearInterval(timerId);
   }
+}
 
-  function rand(min,max){return Math.random()*(max-min)+min;}
-  function randomPosition(){
-    const w=lock.offsetWidth, h=lock.offsetHeight;
-    const x=rand(6, Math.max(7, window.innerWidth - w - 6));
-    const y=rand(6, Math.max(7, window.innerHeight - h - 6));
-    lock.style.left = x+'px';
-    lock.style.top  = y+'px';
-    lastMoveTime = Date.now();
+function endGame(){
+  started=false;
+  clearInterval(mover);
+  clearInterval(timerId);
+  lock.style.display='none';
+  gameOver.style.display='block';
+  if(score>high){
+    high=score;
+    localStorage.setItem(HS_KEY, String(high));
   }
+  updateScore();
+}
 
-  function tick(){
-    randomPosition();
-    if(!started) return;
-    setTimeout(() => {
-      if (Date.now() - lastMoveTime >= 500 && started) {
-        misses++;
-        if (misses >= 3) endGame();
-      }
-    }, 500);
-  }
+function updateScore(){ scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`; }
+function updateTimer(){ timerBox.textContent=`00:${String(timeLeft).padStart(2,'0')}`; }
 
-  function startGame(){
-    started=true; score=0; misses=0; speed=1900;
-    updateScore();
-    overlay.style.display='none';
-    gameOver.style.display='none';
-    lock.style.display='block';
-    scoreBox.style.display='block';
-    randomPosition();
+lock.addEventListener('click', ()=>{
+  lastMoveTime = Date.now();
+  if(!started) return;
+  score++; updateScore();
+  clickCountSinceSpeedUp++;
+  lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
+  if(clickCountSinceSpeedUp >= 3 && speed > 1400){ // שינוי כל 3 תפיסות
+    speed -= 120;
+    clickCountSinceSpeedUp = 0;
     clearInterval(mover);
     mover=setInterval(tick, speed);
-
-    if(mode==='challenge'){
-      timeLeft=30;
-      timerBox.style.display='block';
-      updateTimer();
-      clearInterval(timerId);
-      timerId=setInterval(()=>{
-        timeLeft--;
-        updateTimer();
-        if(timeLeft<=0){ endGame(); }
-      },1000);
-    }else{
-      timerBox.style.display='none';
-      clearInterval(timerId);
-    }
   }
+  randomPosition();
+});
 
-  function endGame(){
-    started=false;
-    clearInterval(mover);
-    clearInterval(timerId);
-    lock.style.display='none';
-    gameOver.style.display='block';
-    if(score>high){
-      high=score;
-      localStorage.setItem(HS_KEY, String(high));
-    }
-    updateScore();
-    ensureAudio(); beep(200,0.15,'triangle',0.25); setTimeout(()=>beep(160,0.18,'triangle',0.22),170);
-  }
-
-  function updateScore(){ scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`; }
-  function updateTimer(){ timerBox.textContent=`00:${String(timeLeft).padStart(2,'0')}`; }
-
-  lock.addEventListener('click', ()=>{
-    lastMoveTime = Date.now();
-    if(!started) return;
-    ensureAudio(); beep(880,0.06,'sine',0.15);
-    score++; updateScore();
-    lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
-    if(speed>1000){
-      speed-=120;
-      clearInterval(mover);
-      mover=setInterval(tick, speed);
-    }
-    randomPosition();
-  });
-
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.hidden){ clearInterval(mover); }
-    else if(started){ clearInterval(mover); mover=setInterval(tick, speed); }
-  });
-  window.addEventListener('resize', ()=>{ if(started) randomPosition(); });
-
-  function startWithGesture(){ ensureAudio(); if(ctx && ctx.state==='suspended'){ ctx.resume(); } startGame(); }
-  freeBtn.addEventListener('click', ()=>{ mode='free'; startWithGesture(); });
-  challengeBtn.addEventListener('click', ()=>{ mode='challenge'; startWithGesture(); });
-  againBtn.addEventListener('click', ()=>{ overlay.style.display='flex'; gameOver.style.display='none'; });
-</script>
-
-<script>
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
-  }
+freeBtn.addEventListener('click', ()=>{ mode='free'; startGame(); });
+challengeBtn.addEventListener('click', ()=>{ mode='challenge'; startGame(); });
+againBtn.addEventListener('click', ()=>{ overlay.style.display='flex'; gameOver.style.display='none'; });
 </script>
 </body>
 </html>
