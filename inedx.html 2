@@ -5,92 +5,128 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>תפוס את המנעול</title>
 <style>
-  body{margin:0;overflow:hidden;background:#f0f0f0;font-family:Arial,sans-serif;text-align:center}
-  #score{position:absolute;top:10px;left:10px;font-size:20px;background:rgba(255,255,255,.8);padding:5px 10px;border-radius:5px;display:none}
-  #lock{position:absolute;width:60px;height:60px;background:url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Lock_font_awesome.svg/512px-Lock_font_awesome.svg.png') no-repeat center/contain;cursor:pointer;transition:transform .2s ease,background-color .3s ease;border-radius:10px;display:none}
-  #overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.15)}
-  #panel{background:#fff;padding:22px 26px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);max-width:420px}
-  #panel h1{margin:0 0 10px;font-size:22px}
-  #panel p{margin:0 0 16px}
-  #panel button{font-size:18px;padding:10px 18px;border:0;border-radius:8px;cursor:pointer;background:#1a73e8;color:#fff}
-  #gameOver{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border-radius:10px;font-size:24px;box-shadow:0 0 20px rgba(0,0,0,.3)}
+  :root{--ui:#1a73e8}
+  body{margin:0;overflow:hidden;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;text-align:center}
+  #score{position:fixed;top:10px;left:10px;font-size:20px;background:rgba(255,255,255,.85);padding:6px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);backdrop-filter:saturate(120%) blur(4px);display:none}
+  /* כפתור התחלה ורקע פתיחה */
+  #overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f6f9ff,#e7eefb)}
+  #panel{background:#fff;padding:24px 28px;border-radius:14px;box-shadow:0 10px 35px rgba(16,24,40,.15);max-width:460px}
+  #panel h1{margin:0 0 10px;font-size:24px}
+  #panel p{margin:0 0 16px;color:#475467}
+  .btn{font-size:18px;padding:10px 18px;border:0;border-radius:10px;cursor:pointer;background:var(--ui);color:#fff;box-shadow:0 6px 20px rgba(26,115,232,.35)}
+  /* המנעול */
+  #lock{position:absolute;width:84px;height:84px;display:none;filter:drop-shadow(0 10px 18px rgba(0,0,0,.18))}
+  #lock svg{width:100%;height:100%;will-change:transform,filter}
+  .pop{animation:pop .18s ease}
+  @keyframes pop{0%{transform:scale(1)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
+  /* מסך סוף משחק */
+  #gameOver{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:22px;border-radius:12px;font-size:22px;box-shadow:0 10px 28px rgba(0,0,0,.2)}
+  #againBtn{margin-top:10px}
 </style>
 </head>
 <body>
   <div id="score">נקודות: 0</div>
-  <div id="lock" aria-label="lock"></div>
 
+  <!-- מנעול SVG ריאליסטי -->
+  <div id="lock" aria-label="lock">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- מתכת קשת -->
+        <linearGradient id="steel" x1="0" x2="1">
+          <stop offset="0" stop-color="#cfd6de"/>
+          <stop offset="0.5" stop-color="#f5f7fa"/>
+          <stop offset="1" stop-color="#aab3bd"/>
+        </linearGradient>
+        <!-- גוף מוזהב -->
+        <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffd574"/>
+          <stop offset="1" stop-color="#c99a2c"/>
+        </linearGradient>
+        <radialGradient id="shine" cx="30%" cy="20%" r="60%">
+          <stop offset="0" stop-color="rgba(255,255,255,.9)"/>
+          <stop offset="1" stop-color="rgba(255,255,255,0)"/>
+        </radialGradient>
+      </defs>
+      <!-- קשת -->
+      <path d="M20 26 v-8 a12 12 0 0 1 24 0 v8"
+            fill="none" stroke="url(#steel)" stroke-width="6" stroke-linecap="round"/>
+      <!-- גוף -->
+      <rect x="14" y="26" rx="6" ry="6" width="36" height="30" fill="url(#brass)" stroke="#916f1c" stroke-width="1.2"/>
+      <!-- נצנוץ -->
+      <ellipse cx="26" cy="32" rx="12" ry="8" fill="url(#shine)"/>
+      <!-- חור מפתח -->
+      <circle cx="32" cy="42" r="5" fill="#3a3a3a"/>
+      <rect x="30.8" y="42" width="2.4" height="8" rx="1.2" fill="#3a3a3a"/>
+    </svg>
+  </div>
+
+  <!-- מסך פתיחה -->
   <div id="overlay">
     <div id="panel">
       <h1>תפוס את המנעול</h1>
-      <p>לחץ על "התחל". המנעול יופיע ויקפוץ כל כמה שניות. אחרי שתתפוס אותו כמה פעמים – הקצב יעלה.</p>
-      <button id="startBtn">התחל</button>
+      <p>לחץ “התחל”. תתפוס את המנעול לפני שהוא קופץ. 3 פספוסים – וזהו.</p>
+      <button id="startBtn" class="btn">התחל</button>
     </div>
   </div>
 
-  <div id="gameOver">המשחק נגמר!<br><button id="againBtn">שחק שוב</button></div>
+  <!-- סוף משחק -->
+  <div id="gameOver">המשחק נגמר!<br><button id="againBtn" class="btn">שחק שוב</button></div>
 
 <script>
-  let score=0,misses=0,speed=2000,started=false;
-  const lock=document.getElementById("lock");
-  const scoreDisplay=document.getElementById("score");
-  const overlay=document.getElementById("overlay");
-  const gameOverScreen=document.getElementById("gameOver");
-  const startBtn=document.getElementById("startBtn");
-  const againBtn=document.getElementById("againBtn");
-  let moveInterval;
+  let score=0, misses=0, speed=1900, started=false, mover;
+  const lock=document.getElementById('lock');
+  const scoreBox=document.getElementById('score');
+  const overlay=document.getElementById('overlay');
+  const gameOver=document.getElementById('gameOver');
+  const startBtn=document.getElementById('startBtn');
+  const againBtn=document.getElementById('againBtn');
 
-  function randomColor(){return `hsl(${Math.random()*360},80%,70%)`;}
+  function rand(min,max){return Math.random()*(max-min)+min;}
   function randomPosition(){
-    const x=Math.max(0,Math.random()*(window.innerWidth-60));
-    const y=Math.max(0,Math.random()*(window.innerHeight-60));
-    lock.style.left=x+"px";
-    lock.style.top=y+"px";
-    lock.style.backgroundColor=randomColor();
+    const w=lock.offsetWidth, h=lock.offsetHeight;
+    const x=rand(6, window.innerWidth - w - 6);
+    const y=rand(6, window.innerHeight - h - 6);
+    lock.style.left = x+'px';
+    lock.style.top  = y+'px';
+    // שינוי גוון קטן כדי “להחיות” את המתכת
+    lock.style.filter = `drop-shadow(0 10px 18px rgba(0,0,0,.18)) hue-rotate(${Math.floor(rand(0,40))}deg)`;
   }
-
-  function moveLock(){
-    if(!started) return;
+  function tick(){
     randomPosition();
+    if(!started) return;
     misses++;
     if(misses>=3) endGame();
   }
-
   function startGame(){
-    started=true;
-    score=0; misses=0; speed=2000;
-    scoreDisplay.textContent="נקודות: "+score;
-    scoreDisplay.style.display="block";
-    lock.style.display="block";
-    overlay.style.display="none";
-    gameOverScreen.style.display="none";
+    started=true; score=0; misses=0; speed=1900;
+    scoreBox.textContent='נקודות: 0';
+    scoreBox.style.display='block';
+    overlay.style.display='none';
+    gameOver.style.display='none';
+    lock.style.display='block';
     randomPosition();
-    clearInterval(moveInterval);
-    moveInterval=setInterval(moveLock,speed);
+    clearInterval(mover);
+    mover=setInterval(tick, speed);
   }
-
   function endGame(){
     started=false;
-    clearInterval(moveInterval);
-    gameOverScreen.style.display="block";
+    clearInterval(mover);
+    gameOver.style.display='block';
   }
-
-  lock.addEventListener("click",()=>{
+  lock.addEventListener('click', ()=>{
     if(!started) return;
     score++;
-    scoreDisplay.textContent="נקודות: "+score;
-    lock.style.transform="scale(1.2)";
-    setTimeout(()=>lock.style.transform="scale(1)",150);
-    if(speed>600){
+    scoreBox.textContent='נקודות: '+score;
+    lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
+    if(speed>650){
       speed-=120;
-      clearInterval(moveInterval);
-      moveInterval=setInterval(moveLock,speed);
+      clearInterval(mover);
+      mover=setInterval(tick, speed);
     }
     randomPosition();
   });
-
-  startBtn.addEventListener("click", startGame);
-  againBtn.addEventListener("click", startGame);
+  startBtn.addEventListener('click', startGame);
+  againBtn.addEventListener('click', startGame);
 </script>
 </body>
 </html>
