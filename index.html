@@ -1,209 +1,165 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<link rel="apple-touch-icon" href="lock-icon-512.png" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>תפוס את המנעול</title>
-<link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#1a73e8" />
 <style>
-  :root{
-    --ui:#1a73e8;
-    --safe-top: env(safe-area-inset-top);
-    --safe-bottom: env(safe-area-inset-bottom);
-    --safe-left: env(safe-area-inset-left);
-    --safe-right: env(safe-area-inset-right);
+  body {
+    margin: 0;
+    background: #eef1f5;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+    text-align: center;
   }
-  html,body{height:100%}
-  body{
-    margin:0; overflow:hidden; background:#eef1f5;
-    font-family:Arial,Helvetica,sans-serif; text-align:center;
-    padding:0 calc(var(--safe-right) + 0px) calc(var(--safe-bottom) + 0px) calc(var(--safe-left) + 0px);
-    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+  #score {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(255,255,255,0.8);
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 18px;
+    display: none;
   }
-  #score{
-    position:fixed; top:calc(10px + var(--safe-top)); left:calc(10px + var(--safe-left));
-    font-size:18px; background:rgba(255,255,255,.85); padding:6px 12px; border-radius:10px;
-    box-shadow:0 4px 14px rgba(0,0,0,.08); backdrop-filter:saturate(120%) blur(4px);
-    display:none; z-index:10;
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: #f6f9ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
   }
-  #overlay{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:linear-gradient(135deg,#f6f9ff,#e7eefb); z-index:20;
+  .btn {
+    font-size: 18px;
+    padding: 10px 18px;
+    margin: 5px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: #1a73e8;
+    color: #fff;
   }
-  #panel{
-    background:#fff; padding:24px 28px; border-radius:14px;
-    box-shadow:0 10px 35px rgba(16,24,40,.15); max-width:520px
+  #lock {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    display: none;
+    cursor: pointer;
   }
-  #panel h1{margin:0 0 10px; font-size:24px}
-  #panel p{margin:0 0 16px; color:#475467}
-  .row{display:flex; gap:10px; flex-wrap:wrap; justify-content:center}
-  .btn{
-    font-size:18px; padding:10px 18px; border:0; border-radius:10px; cursor:pointer;
-    background:var(--ui); color:#fff; box-shadow:0 6px 20px rgba(26,115,232,.35)
+  #gameOver {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    font-size: 24px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
   }
-  .btn.secondary{ background:#10b981; box-shadow:0 6px 20px rgba(16,185,129,.35) }
-  .btn.warn{ background:#ef4444; box-shadow:0 6px 20px rgba(239,68,68,.35) }
-
-  #lock{ position:absolute; width:84px; height:84px; display:none; filter:drop-shadow(0 10px 18px rgba(0,0,0,.18)) }
-  #lock svg{ width:100%; height:100%; will-change:transform,filter }
-  .pop{ animation:pop .18s ease }
-  @keyframes pop{ 0%{transform:scale(1)}60%{transform:scale(1.18)}100%{transform:scale(1)} }
-
-  #gameOver{
-    display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:#fff; padding:22px; border-radius:12px; font-size:22px; box-shadow:0 10px 28px rgba(0,0,0,.2); z-index:25
-  }
-  #againBtn{ margin-top:10px }
-
-  @media (min-width:820px){ #lock{ width:96px; height:96px } }
-  @media (min-width:1024px){ #lock{ width:110px; height:110px } }
 </style>
 </head>
 <body>
-  <div id="score">נקודות: 0 · שיא: 0</div>
 
-  <!-- מנעול SVG ריאליסטי -->
-  <div id="lock" aria-label="lock">
-    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <defs>
-        <linearGradient id="steel" x1="0" x2="1">
-          <stop offset="0" stop-color="#cfd6de"/>
-          <stop offset="0.5" stop-color="#f5f7fa"/>
-          <stop offset="1" stop-color="#aab3bd"/>
-        </linearGradient>
-        <linearGradient id="brass" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#ffd574"/>
-          <stop offset="1" stop-color="#c99a2c"/>
-        </linearGradient>
-        <radialGradient id="shine" cx="30%" cy="20%" r="60%">
-          <stop offset="0" stop-color="rgba(255,255,255,.9)"/>
-          <stop offset="1" stop-color="rgba(255,255,255,0)"/>
-        </radialGradient>
-      </defs>
-      <path d="M20 26 v-8 a12 12 0 0 1 24 0 v8" fill="none" stroke="url(#steel)" stroke-width="6" stroke-linecap="round"/>
-      <rect x="14" y="26" rx="6" ry="6" width="36" height="30" fill="url(#brass)" stroke="#916f1c" stroke-width="1.2"/>
-      <ellipse cx="26" cy="32" rx="12" ry="8" fill="url(#shine)"/>
-      <circle cx="32" cy="42" r="5" fill="#3a3a3a"/>
-      <rect x="30.8" y="42" width="2.4" height="8" rx="1.2" fill="#3a3a3a"/>
-    </svg>
-  </div>
+<div id="score">נקודות: 0</div>
 
-  <!-- מסך פתיחה -->
-  <div id="overlay">
-    <div id="panel">
-      <h1>תפוס את המנעול</h1>
-      <p>בחר קצב. אין האצה במהלך המשחק. 3 פספוסים מסיימים.</p>
-      <div class="row" style="margin-bottom:12px">
-        <button class="btn" onclick="setSpeed(2000)">לאט (2.0s)</button>
-        <button class="btn secondary" onclick="setSpeed(1700)">בינוני (1.7s)</button>
-        <button class="btn warn" onclick="setSpeed(1400)">מהיר (1.4s)</button>
-      </div>
-      <div class="row">
-        <button id="startBtn" class="btn">התחל</button>
-      </div>
-    </div>
-  </div>
+<div id="overlay">
+  <h1>תפוס את המנעול</h1>
+  <p>בחר קצב משחק:</p>
+  <button class="btn" onclick="setSpeed(2000)">לאט (2 שניות)</button>
+  <button class="btn" onclick="setSpeed(1500)">בינוני (1.5 שניות)</button>
+  <button class="btn" onclick="setSpeed(1000)">מהיר (1 שנייה)</button>
+  <br>
+  <button class="btn" onclick="startGame()">התחל משחק</button>
+</div>
 
-  <!-- סוף משחק -->
-  <div id="gameOver">המשחק נגמר!<br/><button id="againBtn" class="btn">שחק שוב</button></div>
+<div id="lock">🔒</div>
+
+<div id="gameOver">
+  <div>המשחק נגמר!</div>
+  <div id="finalScore"></div>
+  <button class="btn" onclick="restart()">שחק שוב</button>
+</div>
 
 <script>
-  // מצב משחק – מהירות קבועה, בלי האצה:
-  let score=0, misses=0, speed=2000, started=false, mover;
-  let clickedSinceLastMove = false; // לוגיקה נקייה לפספוס
-  const MIN_SPEED = 1200; // מחסום תחתון אפשרי לבחירה (לא משתמשים בהאצה בכלל)
+let speed = 2000;       // ברירת מחדל
+let score = 0;
+let misses = 0;
+let timer;
+let started = false;
+const maxMisses = 3;
 
-  // אלמנטים
-  const lock=document.getElementById('lock');
-  const scoreBox=document.getElementById('score');
-  const overlay=document.getElementById('overlay');
-  const gameOver=document.getElementById('gameOver');
-  const startBtn=document.getElementById('startBtn');
-  const againBtn=document.getElementById('againBtn');
+const lock = document.getElementById('lock');
+const scoreBox = document.getElementById('score');
+const overlay = document.getElementById('overlay');
+const gameOver = document.getElementById('gameOver');
+const finalScore = document.getElementById('finalScore');
 
-  // שיא מקומי
-  const HS_KEY='lock_game_highscore';
-  let high=Number(localStorage.getItem(HS_KEY)||0);
+function setSpeed(s) {
+  speed = s;
+}
+
+function randomPosition() {
+  const w = window.innerWidth - lock.offsetWidth;
+  const h = window.innerHeight - lock.offsetHeight;
+  const x = Math.random() * w;
+  const y = Math.random() * h;
+  lock.style.left = x + 'px';
+  lock.style.top = y + 'px';
+}
+
+function showLock() {
+  randomPosition();
+  lock.style.display = 'block';
+  timer = setTimeout(() => {
+    // אם לא לחצו בזמן → פספוס
+    misses++;
+    if (misses >= maxMisses) {
+      endGame();
+      return;
+    }
+    showLock();
+  }, speed);
+}
+
+function startGame() {
+  score = 0;
+  misses = 0;
+  started = true;
+  overlay.style.display = 'none';
+  gameOver.style.display = 'none';
+  scoreBox.style.display = 'block';
   updateScore();
+  showLock();
+}
 
-  function setSpeed(s){ speed = Math.max(MIN_SPEED, s); }
+function updateScore() {
+  scoreBox.textContent = `נקודות: ${score}`;
+}
 
-  function rand(min,max){return Math.random()*(max-min)+min;}
-  function moveLock(){
-    const w=lock.offsetWidth, h=lock.offsetHeight;
-    const x=rand(6, Math.max(7, window.innerWidth - w - 6));
-    const y=rand(6, Math.max(7, window.innerHeight - h - 6));
-    lock.style.left = x+'px';
-    lock.style.top  = y+'px';
-  }
+lock.addEventListener('click', () => {
+  if (!started) return;
+  score++;
+  updateScore();
+  clearTimeout(timer);
+  showLock();
+});
 
-  function nextCycle(){
-    // בכניסה לפונקציה אנו ב"סוף" הסיבוב הקודם – אם לא נלחץ: פספוס
-    if(started){
-      if(!clickedSinceLastMove){
-        misses++;
-        if(misses>=3){ endGame(); return; }
-      }
-      // מתחילים יעד חדש
-      clickedSinceLastMove = false;
-      moveLock();
-    }
-  }
+function endGame() {
+  started = false;
+  lock.style.display = 'none';
+  scoreBox.style.display = 'none';
+  gameOver.style.display = 'flex';
+  finalScore.textContent = `הניקוד שלך: ${score}`;
+}
 
-  function startGame(){
-    started=true; score=0; misses=0;
-    updateScore();
-    overlay.style.display='none';
-    gameOver.style.display='none';
-    lock.style.display='block';
-    scoreBox.style.display='block';
-    clickedSinceLastMove = false;
-    moveLock();
-    clearInterval(mover);
-    mover = setInterval(nextCycle, speed);
-  }
-
-  function endGame(){
-    started=false;
-    clearInterval(mover);
-    lock.style.display='none';
-    gameOver.style.display='block';
-    if(score>high){ high=score; localStorage.setItem(HS_KEY, String(high)); }
-    updateScore();
-  }
-
-  function updateScore(){ scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`; }
-
-  // לחיצה – תופסת, מעלה נקודה ומיד פותחת יעד חדש (אותו קצב, בלי האצה)
-  lock.addEventListener('click', ()=>{
-    if(!started) return;
-    if(!clickedSinceLastMove){
-      clickedSinceLastMove = true;
-      score++; updateScore();
-      lock.classList.remove('pop'); void lock.offsetWidth; lock.classList.add('pop');
-      moveLock();            // יעד חדש
-      clickedSinceLastMove = false; // מתחילים סיבוב חדש "לא נלחץ" עד הלחיצה הבאה
-    }
-  });
-
-  startBtn.addEventListener('click', startGame);
-  againBtn.addEventListener('click', ()=>{ overlay.style.display='flex'; gameOver.style.display='none'; });
-
-  // שמירה על תנועה כשחוזרים לטאב
-  document.addEventListener('visibilitychange', ()=>{
-    if(document.hidden){ clearInterval(mover); }
-    else if(started){ clearInterval(mover); mover=setInterval(nextCycle, speed); }
-  });
-  window.addEventListener('resize', ()=>{ if(started) moveLock(); });
-
-  // רישום Service Worker ל-PWA (רשות. ייעלם בשקט אם אין sw.js)
-  if('serviceWorker' in navigator){
-    window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
-  }
+function restart() {
+  overlay.style.display = 'flex';
+  gameOver.style.display = 'none';
+}
 </script>
+
 </body>
 </html>
