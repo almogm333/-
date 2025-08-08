@@ -2,26 +2,79 @@
 <html lang="he">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="lock-icon-512.png">
+
 <title>תפוס את המנעול</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a73e8">
+
 <style>
-  :root{--ui:#1a73e8}
-  body{margin:0;overflow:hidden;background:#eef1f5;font-family:Arial,Helvetica,sans-serif;text-align:center}
-  #score{position:fixed;top:10px;left:10px;font-size:18px;background:rgba(255,255,255,.85);padding:6px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);backdrop-filter:saturate(120%) blur(4px);display:none}
-  #timer{position:fixed;top:10px;right:10px;font-size:18px;background:rgba(255,255,255,.85);padding:6px 12px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,.08);display:none}
-  #overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#f6f9ff,#e7eefb)}
-  #panel{background:#fff;padding:24px 28px;border-radius:14px;box-shadow:0 10px 35px rgba(16,24,40,.15);max-width:520px}
-  #panel h1{margin:0 0 10px;font-size:24px}
-  #panel p{margin:0 0 16px;color:#475467}
-  .btn{font-size:18px;padding:10px 18px;border:0;border-radius:10px;cursor:pointer;background:var(--ui);color:#fff;box-shadow:0 6px 20px rgba(26,115,232,.35)}
+  :root{
+    --ui:#1a73e8;
+    --safe-top: env(safe-area-inset-top);
+    --safe-bottom: env(safe-area-inset-bottom);
+    --safe-left: env(safe-area-inset-left);
+    --safe-right: env(safe-area-inset-right);
+  }
+  html,body{height:100%}
+  body{
+    margin:0;
+    overflow:hidden;
+    background:#eef1f5;
+    font-family:Arial,Helvetica,sans-serif;
+    text-align:center;
+    padding: 0 calc(var(--safe-right) + 0px) calc(var(--safe-bottom) + 0px) calc(var(--safe-left) + 0px);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  #score,#timer{
+    position:fixed;
+    top:calc(10px + var(--safe-top));
+    font-size:18px;
+    background:rgba(255,255,255,.85);
+    padding:6px 12px;
+    border-radius:10px;
+    box-shadow:0 4px 14px rgba(0,0,0,.08);
+    backdrop-filter:saturate(120%) blur(4px);
+    display:none;
+    z-index:10;
+  }
+  #score{ left:calc(10px + var(--safe-left)); }
+  #timer{ right:calc(10px + var(--safe-right)); }
+  #overlay{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#f6f9ff,#e7eefb);
+    z-index:20;
+  }
+  #panel{
+    background:#fff; padding:24px 28px; border-radius:14px;
+    box-shadow:0 10px 35px rgba(16,24,40,.15); max-width:520px
+  }
+  #panel h1{margin:0 0 10px; font-size:24px}
+  #panel p{margin:0 0 16px; color:#475467}
   .row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
-  .btn.secondary{background:#10b981;box-shadow:0 6px 20px rgba(16,185,129,.35)}
-  #lock{position:absolute;width:84px;height:84px;display:none;filter:drop-shadow(0 10px 18px rgba(0,0,0,.18))}
-  #lock svg{width:100%;height:100%;will-change:transform,filter}
-  .pop{animation:pop .18s ease}
-  @keyframes pop{0%{transform:scale(1)}60%{transform:scale(1.18)}100%{transform:scale(1)}}
-  #gameOver{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:22px;border-radius:12px;font-size:22px;box-shadow:0 10px 28px rgba(0,0,0,.2)}
-  #againBtn{margin-top:10px}
+  .btn{
+    font-size:18px; padding:10px 18px; border:0; border-radius:10px; cursor:pointer;
+    background:var(--ui); color:#fff; box-shadow:0 6px 20px rgba(26,115,232,.35)
+  }
+  .btn.secondary{ background:#10b981; box-shadow:0 6px 20px rgba(16,185,129,.35) }
+  #lock{ position:absolute; width:84px; height:84px; display:none; filter:drop-shadow(0 10px 18px rgba(0,0,0,.18)) }
+  #lock svg{ width:100%; height:100%; will-change:transform,filter }
+  .pop{ animation:pop .18s ease }
+  @keyframes pop{ 0%{transform:scale(1)}60%{transform:scale(1.18)}100%{transform:scale(1)} }
+  #gameOver{
+    display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+    background:#fff; padding:22px; border-radius:12px; font-size:22px; box-shadow:0 10px 28px rgba(0,0,0,.2); z-index:25
+  }
+  #againBtn{ margin-top:10px }
+
+  /* התאמת גודל מנעול למסכים גדולים יותר */
+  @media (min-width: 820px) { #lock{ width:96px; height:96px } }
+  @media (min-width: 1024px){ #lock{ width:110px; height:110px } }
 </style>
 </head>
 <body>
@@ -58,7 +111,7 @@
   <div id="overlay">
     <div id="panel">
       <h1>תפוס את המנעול</h1>
-      <p>בחר מצב משחק. תפיסה מעלה ניקוד ומזרזת את הקפיצות. 3 פספוסים מסיימים משחק.</p>
+      <p>בחר מצב משחק. כל תפיסה מעלה ניקוד ומזרזת את הקפיצות. 3 פספוסים מסיימים משחק.</p>
       <div class="row">
         <button id="freeBtn" class="btn">מצב חופשי</button>
         <button id="challengeBtn" class="btn secondary">אתגר 30 שניות</button>
@@ -70,9 +123,11 @@
   <div id="gameOver">המשחק נגמר!<br><button id="againBtn" class="btn">שחק שוב</button></div>
 
 <script>
-  // מצב משחק
-  let mode = 'free'; // 'free' | 'challenge'
+  // מצב משחק ושעון
+  let mode='free';
   let score=0, misses=0, speed=1900, started=false, mover, timerId, timeLeft=30;
+
+  // אלמנטים
   const lock=document.getElementById('lock');
   const scoreBox=document.getElementById('score');
   const timerBox=document.getElementById('timer');
@@ -87,7 +142,7 @@
   let high=Number(localStorage.getItem(HS_KEY)||0);
   updateScore();
 
-  // אודיו בלי קבצים (WebAudio)
+  // אודיו קליל בלי קבצים (WebAudio)
   let ctx=null;
   function ensureAudio(){ if(!ctx){ try{ ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
   function beep(freq=880, dur=0.08, type='sine', vol=0.2){
@@ -100,6 +155,7 @@
     setTimeout(()=>{ o.stop(); o.disconnect(); g.disconnect(); }, dur*1000);
   }
 
+  // עזר
   function rand(min,max){return Math.random()*(max-min)+min;}
   function randomPosition(){
     const w=lock.offsetWidth, h=lock.offsetHeight;
@@ -115,6 +171,8 @@
     misses++;
     if(misses>=3) endGame();
   }
+
+  // התחלה/סיום
   function startGame(){
     started=true; score=0; misses=0; speed=1900;
     updateScore();
@@ -141,19 +199,12 @@
       clearInterval(timerId);
     }
   }
-  function updateScore(){
-    scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`;
-  }
-  function updateTimer(){
-    const s = String(timeLeft).padStart(2,'0');
-    timerBox.textContent=`00:${s}`;
-  }
   function endGame(){
     started=false;
     clearInterval(mover);
     clearInterval(timerId);
     lock.style.display='none';
-    document.getElementById('gameOver').style.display='block';
+    gameOver.style.display='block';
     if(score>high){
       high=score;
       localStorage.setItem(HS_KEY, String(high));
@@ -163,6 +214,11 @@
     ensureAudio(); beep(200,0.15,'triangle',0.25); setTimeout(()=>beep(160,0.18,'triangle',0.22),170);
   }
 
+  // ניקוד/טיימר
+  function updateScore(){ scoreBox.textContent=`נקודות: ${score} · שיא: ${high}`; }
+  function updateTimer(){ timerBox.textContent=`00:${String(timeLeft).padStart(2,'0')}`; }
+
+  // אירועים
   lock.addEventListener('click', ()=>{
     if(!started) return;
     ensureAudio(); beep(880,0.06,'sine',0.15);
@@ -176,21 +232,24 @@
     randomPosition();
   });
 
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.hidden){ clearInterval(mover); }
+    else if(started){ clearInterval(mover); mover=setInterval(tick, speed); }
+  });
+  window.addEventListener('resize', ()=>{ if(started) randomPosition(); });
+
+  // כפתורים
+  function startWithGesture(){ ensureAudio(); if(ctx && ctx.state==='suspended'){ ctx.resume(); } startGame(); }
   freeBtn.addEventListener('click', ()=>{ mode='free'; startWithGesture(); });
   challengeBtn.addEventListener('click', ()=>{ mode='challenge'; startWithGesture(); });
-  againBtn.addEventListener('click', ()=>{ overlay.style.display='flex'; document.getElementById('gameOver').style.display='none'; });
+  againBtn.addEventListener('click', ()=>{ overlay.style.display='flex'; gameOver.style.display='none'; });
+</script>
 
-  // כדי ש-WebAudio יעבוד באייפון – להתחיל אחרי מחווה של המשתמש
-  function startWithGesture(){
-    ensureAudio();
-    if(ctx && ctx.state==='suspended'){ ctx.resume(); }
-    startGame();
+<script>
+  // רישום Service Worker ל-PWA
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
   }
-
-  // הגנה קטנה: אם הטאב הוסתר – עוצרים תנועה
-  document.addEventListener('visibilitychange', ()=>{ if(document.hidden){ clearInterval(mover); } else if(started){ clearInterval(mover); mover=setInterval(tick, speed); }});
-  // שינוי גודל מסך
-  window.addEventListener('resize', ()=>{ if(started) randomPosition(); });
 </script>
 </body>
 </html>
