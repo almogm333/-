@@ -1,102 +1,61 @@
-
 <!DOCTYPE html>
 <html lang="he">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>תפוס את המנעול</title>
 <style>
-    body {
-        margin: 0;
-        overflow: hidden;
-        background-color: #f0f0f0;
-        font-family: Arial, sans-serif;
-        text-align: center;
-    }
-    #score {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        font-size: 20px;
-        background: rgba(255,255,255,0.8);
-        padding: 5px 10px;
-        border-radius: 5px;
-    }
-    #lock {
-        position: absolute;
-        width: 60px;
-        height: 60px;
-        background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Lock_font_awesome.svg/512px-Lock_font_awesome.svg.png') no-repeat center/contain;
-        cursor: pointer;
-    }
-    #gameOver {
-        display: none;
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        font-size: 24px;
-    }
+  body{margin:0;overflow:hidden;background:#f0f0f0;font-family:Arial,sans-serif;text-align:center}
+  #score{position:absolute;top:10px;left:10px;font-size:20px;background:rgba(255,255,255,.8);padding:5px 10px;border-radius:5px}
+  #lock{position:absolute;width:60px;height:60px;background:url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Lock_font_awesome.svg/512px-Lock_font_awesome.svg.png') no-repeat center/contain;cursor:pointer;transition:transform .2s ease,background-color .3s ease;border-radius:10px}
+  #gameOver{display:none;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:20px;border-radius:10px;font-size:24px;box-shadow:0 0 20px rgba(0,0,0,.3)}
 </style>
 </head>
 <body>
-<div id="score">נקודות: 0</div>
-<div id="lock"></div>
-<div id="gameOver">המשחק נגמר!<br> <button onclick="startGame()">שחק שוב</button></div>
+  <div id="score">נקודות: 0</div>
+  <div id="lock"></div>
+  <div id="gameOver">המשחק נגמר!<br><button onclick="startGame()">שחק שוב</button></div>
 
 <script>
-let score = 0;
-let misses = 0;
-let speed = 2000; // זמן בין תזוזות המנעול במילישניות
-let lock = document.getElementById("lock");
-let scoreDisplay = document.getElementById("score");
-let gameOverScreen = document.getElementById("gameOver");
-let moveInterval;
+  let score=0,misses=0,speed=2000;
+  const lock=document.getElementById("lock");
+  const scoreDisplay=document.getElementById("score");
+  const gameOverScreen=document.getElementById("gameOver");
+  let moveInterval;
 
-function randomPosition() {
-    let x = Math.random() * (window.innerWidth - 60);
-    let y = Math.random() * (window.innerHeight - 60);
-    lock.style.left = x + "px";
-    lock.style.top = y + "px";
-}
-
-lock.addEventListener("click", function() {
-    score++;
-    scoreDisplay.innerText = "נקודות: " + score;
-    if (speed > 500) {
-        speed -= 100; // כל תפיסה המהירות עולה קצת
-        clearInterval(moveInterval);
-        moveInterval = setInterval(moveLock, speed);
-    }
-    randomPosition();
-});
-
-function moveLock() {
+  function randomColor(){return `hsl(${Math.random()*360},80%,70%)`;}
+  function randomPosition(){
+    const x=Math.random()*(window.innerWidth-60);
+    const y=Math.random()*(window.innerHeight-60);
+    lock.style.left=x+"px";
+    lock.style.top=y+"px";
+    lock.style.backgroundColor=randomColor();
+  }
+  function moveLock(){
     randomPosition();
     misses++;
-    if (misses >= 3) {
-        endGame();
-    }
-}
-
-function startGame() {
-    score = 0;
-    misses = 0;
-    speed = 2000;
-    scoreDisplay.innerText = "נקודות: " + score;
-    gameOverScreen.style.display = "none";
+    if(misses>=3) endGame();
+  }
+  function startGame(){
+    score=0; misses=0; speed=2000;
+    scoreDisplay.innerText="נקודות: "+score;
+    gameOverScreen.style.display="none";
     randomPosition();
-    moveInterval = setInterval(moveLock, speed);
-}
-
-function endGame() {
     clearInterval(moveInterval);
-    gameOverScreen.style.display = "block";
-}
-
-window.onload = startGame;
+    moveInterval=setInterval(moveLock,speed);
+  }
+  function endGame(){
+    clearInterval(moveInterval);
+    gameOverScreen.style.display="block";
+  }
+  lock.addEventListener("click",()=>{
+    score++; scoreDisplay.innerText="נקודות: "+score;
+    lock.style.transform="scale(1.2)";
+    setTimeout(()=>lock.style.transform="scale(1)",150);
+    if(speed>500){ speed-=100; clearInterval(moveInterval); moveInterval=setInterval(moveLock,speed); }
+    randomPosition();
+  });
+  window.onload=startGame;
 </script>
 </body>
 </html>
