@@ -1,0 +1,102 @@
+
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<title>תפוס את המנעול</title>
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #f0f0f0;
+        font-family: Arial, sans-serif;
+        text-align: center;
+    }
+    #score {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        font-size: 20px;
+        background: rgba(255,255,255,0.8);
+        padding: 5px 10px;
+        border-radius: 5px;
+    }
+    #lock {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        background: url('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e3/Lock_font_awesome.svg/512px-Lock_font_awesome.svg.png') no-repeat center/contain;
+        cursor: pointer;
+    }
+    #gameOver {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        font-size: 24px;
+    }
+</style>
+</head>
+<body>
+<div id="score">נקודות: 0</div>
+<div id="lock"></div>
+<div id="gameOver">המשחק נגמר!<br> <button onclick="startGame()">שחק שוב</button></div>
+
+<script>
+let score = 0;
+let misses = 0;
+let speed = 2000; // זמן בין תזוזות המנעול במילישניות
+let lock = document.getElementById("lock");
+let scoreDisplay = document.getElementById("score");
+let gameOverScreen = document.getElementById("gameOver");
+let moveInterval;
+
+function randomPosition() {
+    let x = Math.random() * (window.innerWidth - 60);
+    let y = Math.random() * (window.innerHeight - 60);
+    lock.style.left = x + "px";
+    lock.style.top = y + "px";
+}
+
+lock.addEventListener("click", function() {
+    score++;
+    scoreDisplay.innerText = "נקודות: " + score;
+    if (speed > 500) {
+        speed -= 100; // כל תפיסה המהירות עולה קצת
+        clearInterval(moveInterval);
+        moveInterval = setInterval(moveLock, speed);
+    }
+    randomPosition();
+});
+
+function moveLock() {
+    randomPosition();
+    misses++;
+    if (misses >= 3) {
+        endGame();
+    }
+}
+
+function startGame() {
+    score = 0;
+    misses = 0;
+    speed = 2000;
+    scoreDisplay.innerText = "נקודות: " + score;
+    gameOverScreen.style.display = "none";
+    randomPosition();
+    moveInterval = setInterval(moveLock, speed);
+}
+
+function endGame() {
+    clearInterval(moveInterval);
+    gameOverScreen.style.display = "block";
+}
+
+window.onload = startGame;
+</script>
+</body>
+</html>
